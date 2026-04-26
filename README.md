@@ -1,91 +1,20 @@
-# 🎨 YouDraw - Web-Based Digital Whiteboard
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-YouDraw is a versatile, browser-based digital whiteboard designed for fast sketching, visual brainstorming, diagram creation, and note-taking - all without installing any software.
+# Run and deploy your AI Studio app
 
-Whether you're a student, developer, designer, or educator, YouDraw provides a smooth and intuitive canvas to bring your ideas to life.
+This contains everything you need to run your app locally.
 
----
+View your app in AI Studio: https://ai.studio/apps/02d4c01a-4df4-429b-a8d2-1c6ff515404f
 
-## ✨ Features
+## Run Locally
 
-### 🧰 Diverse Toolset
-- ✋ **Selection & Hand Tool** - Move across the canvas and manage elements easily  
-- ✏️ **Freehand Drawing** - Smooth pen/brush for sketching  
-- ⬛ **Shapes** - Create rectangles and structured diagrams  
-- 🔤 **Text Tool** - Add customizable text annotations  
-- 🖼️ **Image Support** - Insert images directly onto the canvas  
+**Prerequisites:**  Node.js
 
----
 
-### 🎛️ Extensive Customization
-- 🎨 **Stroke & Fill Colors** - Fully customizable colors  
-- 📏 **Stroke Width** - Adjust thickness of lines and shapes  
-- 🔘 **Edge Roundness** - Control corner smoothness  
-- 🔗 **Text Styling** - Font size, alignment & hyperlinks  
-
----
-
-### 🧩 Configurable Canvas
-- 📐 **Background Patterns**
-  - Blank
-  - Dots
-  - Grid
-  - Lines
-  - Isometric Grid  
-
-- 🌗 **Canvas Themes**
-  - Light mode  
-  - Dark mode  
-  - Paper-style backgrounds  
-
----
-
-### ⚙️ Workflow & Controls
-- ↩️ **Undo / Redo**
-- 🔍 **Zoom In / Out / Reset**
-- 🧭 **Pan Navigation**
-- 🗑️ **Clear Canvas**
-- 📤 **Export as Image**
-
----
-
-### 📱 Modern UI & Accessibility
-- 🌙 **Dark Mode / Light Mode Toggle**
-- 📲 **Fully Responsive Design**
-- 🤏 **Touch-Friendly Controls**
-- ⌨️ **Keyboard Shortcuts (hidden on small screens)**
-
----
-
-## 🚀 Use Cases
-
-### 💡 Brainstorming & Mind Mapping
-Quickly visualize ideas and connect concepts on an infinite canvas.
-
-### 🧱 Wireframing & UI Design
-Sketch layouts and user flows using grids and shapes.
-
-### 📚 Teaching & Presentations
-Draw diagrams, explain concepts, or solve problems live.
-
-### 🎨 Casual Drawing & Notes
-Use it as a lightweight sketchpad or quick note-taking tool.
-
----
-
-## 🌐 Why YouDraw?
-
-- ⚡ No installation required - runs directly in browser  
-- 🎯 Minimal learning curve  
-- 🧠 Designed for speed and creativity  
-- 📦 Lightweight alternative to heavy design tools  
-
----
-
-## 📦 Installation
-
-```bash
-git clone https://github.com/tarun11-xyz/you-draw.git
-cd you-draw
-npm install
-npm start
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
