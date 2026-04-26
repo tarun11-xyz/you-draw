@@ -75,7 +75,7 @@ Use it as a lightweight sketchpad or quick note-taking tool.
 
 ## 🌐 Why YouDraw?
 
-- ⚡ No installation required — runs directly in browser  
+- ⚡ No installation required - runs directly in browser  
 - 🎯 Minimal learning curve  
 - 🧠 Designed for speed and creativity  
 - 📦 Lightweight alternative to heavy design tools  
