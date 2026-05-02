@@ -94,7 +94,7 @@ export const createElement = (
         const minY = Math.min(y1, y2);
         const w = Math.abs(x2 - x1);
         const h = Math.abs(y2 - y1);
-        const r = Math.min(24, w / 2, h / 2); // More rounded
+        const r = Math.min(28.8, w / 2, h / 2); // Increased by 20% from 24
         const path = `M ${minX + r} ${minY} H ${minX + w - r} A ${r} ${r} 0 0 1 ${minX + w} ${minY + r} V ${minY + h - r} A ${r} ${r} 0 0 1 ${minX + w - r} ${minY + h} H ${minX + r} A ${r} ${r} 0 0 1 ${minX} ${minY + h - r} V ${minY + r} A ${r} ${r} 0 0 1 ${minX + r} ${minY} Z`;
         roughElement = generator.path(path, options);
       } else {
