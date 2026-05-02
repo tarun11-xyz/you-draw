@@ -44,10 +44,10 @@ const TOOLS = [
 
 export const Toolbar: React.FC<ToolbarProps> = ({ activeTool, setActiveTool, onImageClick }) => {
   return (
-    <div className="fixed bottom-4 sm:bottom-auto md:top-12 lg:top-4 sm:top-4 left-1/2 -translate-x-1/2 flex items-center p-1.5 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 gap-1 z-10 transition-colors w-max max-w-[calc(100vw-1rem)] overflow-x-auto custom-scrollbar touch-auto">
+    <div className="fixed bottom-4 sm:bottom-auto md:top-12 lg:top-4 sm:top-4 left-1/2 -translate-x-1/2 flex items-center p-1.5 bg-white dark:bg-[#232329] rounded-xl shadow-lg border border-gray-100 dark:border-[#383845] gap-1 z-10 transition-colors w-max max-w-[calc(100vw-1rem)] overflow-x-auto custom-scrollbar touch-auto">
       {TOOLS.map(({ type, icon: Icon, label, key }) => (
         <React.Fragment key={type}>
-          {type === 'rectangle' && <div className="w-[1px] h-6 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0"></div>}
+          {type === 'rectangle' && <div className="w-[1px] h-6 bg-gray-200 dark:bg-[#343442] mx-1 shrink-0"></div>}
           <button
             onClick={() => {
               setActiveTool(type as ToolType);
@@ -56,8 +56,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({ activeTool, setActiveTool, onI
             title={`${label} (${key})`}
             className={`relative p-2.5 rounded-lg transition-colors flex items-center justify-center shrink-0 ${
               activeTool === type
-                ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent'
+                ? 'text-blue-600 bg-blue-50 dark:bg-[#00ffff]/20 dark:text-[#00ffff] border border-blue-100 dark:border-[#00ffff]/40'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#343442] border border-transparent'
             }`}
           >
             <Icon size={20} strokeWidth={2} />
