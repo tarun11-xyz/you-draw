@@ -22,6 +22,7 @@ function getSvgPathFromStroke(stroke: number[][]) {
 export const imageCache = new Map<string, HTMLImageElement>();
 
 export const createElement = (
+  theme: string,
   id: string,
   x1: number,
   y1: number,
@@ -36,6 +37,10 @@ export const createElement = (
   fontFamily: string = 'Caveat, cursive',
   fontSize: number = 32,
   textAlign: 'left' | 'center' | 'right' = 'left',
+  fillStyle: 'hachure' | 'cross-hatch' | 'solid' = 'solid',
+  strokeStyle: 'solid' | 'dashed' | 'dotted' = 'solid',
+  roughness: number = 1,
+  opacity: number = 100
 ): CanvasElement => {
   let roughElement = null;
   const cx = (x1 + x2) / 2;
@@ -43,13 +48,40 @@ export const createElement = (
   const width = x2 - x1;
   const height = y2 - y1;
 
+  let strokeLineDash;
+  if (strokeStyle === 'dashed') {
+    strokeLineDash = [8, 8];
+  } else if (strokeStyle === 'dotted') {
+    strokeLineDash = [2, 6];
+  }
+
+  // Adjust roughness for a better appearance when 0 or 1, leaving 2 very sloppy
+  const adjustedRoughness = roughness === 0 ? 0 : roughness === 1 ? 0.5 : 2;
+
+  let sColor = strokeColor;
+  let bColor = backgroundColor;
+  if (theme === 'dark') {
+    if (sColor === '#1e1e1e') sColor = '#ffffff';
+    else if (sColor === '#ffffff') sColor = '#1e1e1e';
+    if (bColor === '#1e1e1e') bColor = '#ffffff';
+    else if (bColor === '#ffffff') bColor = '#1e1e1e';
+  } else {
+    if (sColor === '#ffffff') sColor = '#1e1e1e';
+    if (bColor === '#ffffff') bColor = '#1e1e1e';
+  }
+
   const options = {
-    stroke: strokeColor,
-    strokeWidth,
-    fill: backgroundColor === 'transparent' ? undefined : backgroundColor,
-    fillStyle: 'solid',
-    roughness: 0.2, // Improved quality
-    bowing: 0.5,
+    seed: 123,
+    stroke: sColor,
+    fill: bColor === 'transparent' ? undefined : bColor,
+    fillStyle: fillStyle,
+    strokeWidth: strokeWidth,
+    strokeLineDash: strokeStyle === 'dashed' ? [8, 8] : strokeStyle === 'dotted' ? [2, 6] : undefined,
+    roughness: roughness === 0 ? 0 : roughness === 1 ? 0.5 : 2,
+    bowing: roughness === 0 ? 0 : roughness === 1 ? 1 : 2,
+    disableMultiStroke: roughness === 0,
+    hachureAngle: 60,
+    hachureGap: strokeWidth * 3
   };
 
   switch (type) {
@@ -127,9 +159,9 @@ export const createElement = (
       ];
       break;
     case 'pencil':
-      return { id, type, x: x1, y: y1, width: 0, height: 0, x1, y1, x2, y2, strokeColor, strokeWidth, points: [{ x: x1, y: y1 }] };
+      return { id, type, x: x1, y: y1, width: 0, height: 0, x1, y1, x2, y2, strokeColor, strokeWidth, fillStyle, strokeStyle, roughness, opacity, points: [{ x: x1, y: y1 }] };
     case 'text':
-      return { id, type, x: x1, y: y1, width: x2-x1, height: y2-y1, x1, y1, x2, y2, strokeColor, backgroundColor, text: '', fontFamily, fontSize, textAlign };
+      return { id, type, x: x1, y: y1, width: x2-x1, height: y2-y1, x1, y1, x2, y2, strokeColor, backgroundColor, fillStyle, strokeStyle, roughness, opacity, text: '', fontFamily, fontSize, textAlign };
     case 'image':
       if (imageUrl && !imageCache.has(id)) {
         const img = new Image();
@@ -138,13 +170,13 @@ export const createElement = (
           imageCache.set(id, img);
         };
       }
-      return { id, type, x: x1, y: y1, width: x2-x1, height: y2-y1, x1, y1, x2, y2, strokeColor, imageUrl };
+      return { id, type, x: x1, y: y1, width: x2-x1, height: y2-y1, x1, y1, x2, y2, strokeColor, fillStyle, strokeStyle, roughness, opacity, imageUrl };
     case 'eraser':
-      return { id, type, x: x1, y: y1, width: 0, height: 0, x1, y1, x2, y2, strokeColor: 'transparent' };
+      return { id, type, x: x1, y: y1, width: 0, height: 0, x1, y1, x2, y2, strokeColor: 'transparent', fillStyle, strokeStyle, roughness, opacity };
     default:
       break;
   }
-  return { id, type, x: x1, y: y1, width, height, x1, y1, x2, y2, strokeColor, backgroundColor, strokeWidth, roundness, roughness: 0.2, roughElement };
+  return { id, type, x: x1, y: y1, width, height, x1, y1, x2, y2, strokeColor, backgroundColor, strokeWidth, roundness, fillStyle, strokeStyle, roughness, opacity, roughElement };
 };
 
 const distance = (a: Point, b: Point) =>
@@ -247,6 +279,9 @@ export const drawElement = (
   context: CanvasRenderingContext2D,
   element: CanvasElement
 ) => {
+  context.save();
+  context.globalAlpha = (element.opacity !== undefined ? element.opacity : 100) / 100;
+
   switch (element.type) {
     case 'line':
     case 'rectangle':
@@ -348,6 +383,7 @@ export const drawElement = (
     default:
       break;
   }
+  context.restore();
 };
 
 export const adjustElementCoordinates = (element: CanvasElement) => {
