@@ -34,7 +34,10 @@ export interface CanvasElement {
   backgroundColor?: string;
   strokeWidth?: number;
   roundness?: 'sharp' | 'round';
+  fillStyle?: 'hachure' | 'cross-hatch' | 'solid';
+  strokeStyle?: 'solid' | 'dashed' | 'dotted';
   roughness?: number;
+  opacity?: number;
   roughElement?: any;
   text?: string;
   fontFamily?: string;
