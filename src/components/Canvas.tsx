@@ -26,7 +26,11 @@ export const Canvas: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [strokeColor, setStrokeColor] = useState<string>('#1e1e1e');
   const [backgroundColor, setBackgroundColor] = useState<string>('transparent');
+  const [fillStyle, setFillStyle] = useState<'hachure' | 'cross-hatch' | 'solid'>('solid');
+  const [strokeStyle, setStrokeStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
   const [strokeWidth, setStrokeWidth] = useState<number>(2);
+  const [roughness, setRoughness] = useState<number>(1);
+  const [opacity, setOpacity] = useState<number>(100);
   const [roundness, setRoundness] = useState<'sharp' | 'round'>('round');
   const [fontFamily, setFontFamily] = useState<string>('Caveat, cursive');
   const [fontSize, setFontSize] = useState<number>(32);
@@ -39,8 +43,7 @@ export const Canvas: React.FC = () => {
        const centerX = (window.innerWidth / 2) / zoomScale - panOffset.x;
        const centerY = (window.innerHeight / 2) / zoomScale - panOffset.y;
        const id = Date.now().toString();
-       const resolvedColor = (theme === 'dark' && strokeColor === '#1e1e1e') ? '#ffffff' : strokeColor;
-       const element = createElement(id, centerX, centerY, centerX, centerY, 'text', resolvedColor, backgroundColor, strokeWidth, roundness, undefined, fontFamily, fontSize, textAlign);
+              const element = createElement(theme, id, centerX, centerY, centerX, centerY, 'text', strokeColor, backgroundColor, strokeWidth, roundness, undefined, fontFamily, fontSize, textAlign, fillStyle, strokeStyle, roughness, opacity);
        if (link) element.link = link;
        setElements((prevState: CanvasElement[]) => [...prevState, element]);
        setSelectedElement(element);
@@ -63,7 +66,7 @@ export const Canvas: React.FC = () => {
         setSelectedElements(prev => prev.map(el => ({ ...el, [key]: value } as any)));
       } else {
         const updated = { ...selectedElement, [key]: value };
-        const el = createElement(updated.id, updated.x1, updated.y1, updated.x2, updated.y2, updated.type, updated.strokeColor, updated.backgroundColor, updated.strokeWidth, updated.roundness, updated.imageUrl, updated.fontFamily, updated.fontSize, updated.textAlign);
+        const el = createElement(theme, updated.id, updated.x1, updated.y1, updated.x2, updated.y2, updated.type, updated.strokeColor, updated.backgroundColor, updated.strokeWidth, updated.roundness, updated.imageUrl, updated.fontFamily, updated.fontSize, updated.textAlign, updated.fillStyle, updated.strokeStyle, updated.roughness, updated.opacity);
         if (updated.text) el.text = updated.text;
         if (updated.link) el.link = updated.link;
         if (updated.points) el.points = updated.points;
@@ -76,6 +79,10 @@ export const Canvas: React.FC = () => {
   const handleStrokeColorChange = (c: string) => updateSetting('strokeColor', c, setStrokeColor);
   const handleBackgroundColorChange = (c: string) => updateSetting('backgroundColor', c, setBackgroundColor);
   const handleStrokeWidthChange = (w: number) => updateSetting('strokeWidth', w, setStrokeWidth);
+  const handleRoughnessChange = (r: number) => updateSetting('roughness', r, setRoughness);
+  const handleOpacityChange = (o: number) => updateSetting('opacity', o, setOpacity);
+  const handleFillStyleChange = (s: string) => updateSetting('fillStyle', s, setFillStyle);
+  const handleStrokeStyleChange = (s: string) => updateSetting('strokeStyle', s, setStrokeStyle);
   const handleRoundnessChange = (r: string) => updateSetting('roundness', r, setRoundness);
   const handleFontFamilyChange = (f: string) => updateSetting('fontFamily', f, setFontFamily);
   const handleFontSizeChange = (s: number) => updateSetting('fontSize', s, setFontSize);
@@ -112,7 +119,7 @@ export const Canvas: React.FC = () => {
         }
 
         if (newStroke !== el.strokeColor || newBg !== el.backgroundColor) {
-          const newEl = createElement(el.id, el.x1, el.y1, el.x2, el.y2, el.type, newStroke, newBg, el.strokeWidth, el.roundness, el.imageUrl, el.fontFamily, el.fontSize, el.textAlign);
+          const newEl = createElement(theme, el.id, el.x1, el.y1, el.x2, el.y2, el.type, newStroke, newBg, el.strokeWidth, el.roundness, el.imageUrl, el.fontFamily, el.fontSize, el.textAlign, el.fillStyle, el.strokeStyle, el.roughness, el.opacity);
           if (el.text) newEl.text = el.text;
           if (el.points) newEl.points = el.points;
           return newEl;
@@ -144,6 +151,10 @@ export const Canvas: React.FC = () => {
         case 'e': setTool('eraser'); break;
         case 'z': if (e.ctrlKey || e.metaKey) undo(); break;
         case 'y': if (e.ctrlKey || e.metaKey) redo(); break;
+        case 'Delete':
+        case 'Backspace':
+          handleDelete();
+          break;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -247,6 +258,7 @@ export const Canvas: React.FC = () => {
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      if (e.target !== canvasRef.current) return;
       e.preventDefault();
       // user wants normal mouse scroll to zoom from the middle
       if (!e.ctrlKey && !e.metaKey) {
@@ -282,6 +294,85 @@ export const Canvas: React.FC = () => {
     };
     window.addEventListener('wheel', handleWheel, { passive: false });
     return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    let initialDistance: number | null = null;
+    let initialZoom: number = 1;
+    let initialPan = { x: 0, y: 0 };
+    let initialCenter = { x: 0, y: 0 };
+
+    const getDistance = (touches: TouchList) => {
+      const t1 = touches[0];
+      const t2 = touches[1];
+      return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    };
+
+    const getCenter = (touches: TouchList) => {
+      const t1 = touches[0];
+      const t2 = touches[1];
+      return { 
+        x: (t1.clientX + t2.clientX) / 2, 
+        y: (t1.clientY + t2.clientY) / 2 
+      };
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        initialDistance = getDistance(e.touches);
+        initialZoom = zoomRef.current;
+        initialPan = { ...panRef.current };
+        initialCenter = getCenter(e.touches);
+        
+        if (actionRef.current === 'drawing') {
+            setElements(prev => prev.slice(0, -1)); // Cancel drawing shape
+        }
+        setAction('none');
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && initialDistance !== null) {
+        e.preventDefault();
+        const currentDistance = getDistance(e.touches);
+        const currentCenter = getCenter(e.touches);
+        
+        const scaleChange = currentDistance / initialDistance;
+        let newZoom = initialZoom * scaleChange;
+        newZoom = Math.min(Math.max(0.1, newZoom), 10);
+
+        const newPan = {
+          x: initialPan.x + (currentCenter.x / newZoom) - (initialCenter.x / initialZoom),
+          y: initialPan.y + (currentCenter.y / newZoom) - (initialCenter.y / initialZoom)
+        };
+        
+        zoomRef.current = newZoom;
+        panRef.current = newPan;
+        
+        setZoomScale(newZoom);
+        setPanOffset(newPan);
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        initialDistance = null;
+      }
+    };
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
   }, []);
 
   const getMouseCoordinates = (event: React.PointerEvent) => {
@@ -365,8 +456,7 @@ export const Canvas: React.FC = () => {
       }
     } else if (tool !== 'image') {
       const id = Date.now().toString();
-      const resolvedColor = (theme === 'dark' && strokeColor === '#1e1e1e') ? '#ffffff' : strokeColor;
-      const element = createElement(id, clientX, clientY, clientX, clientY, tool, resolvedColor, backgroundColor, strokeWidth, roundness, undefined, fontFamily, fontSize, textAlign);
+            const element = createElement(theme, id, clientX, clientY, clientX, clientY, tool, strokeColor, backgroundColor, strokeWidth, roundness, undefined, fontFamily, fontSize, textAlign, fillStyle, strokeStyle, roughness, opacity);
       
       setElements((prevState: CanvasElement[]) => [...prevState, element]);
       setSelectedElement(element);
@@ -449,7 +539,7 @@ export const Canvas: React.FC = () => {
         elementsCopy[index] = element;
         setElements(elementsCopy, true);
       } else {
-        const element = createElement(selectedElement.id, x1, y1, clientX, clientY, tool, strokeColor, backgroundColor, strokeWidth, roundness, imageUrl, selectedElement?.fontFamily || fontFamily, selectedElement?.fontSize || fontSize, selectedElement?.textAlign || textAlign);
+        const element = createElement(theme, selectedElement.id, x1, y1, clientX, clientY, tool, strokeColor, backgroundColor, strokeWidth, roundness, imageUrl, selectedElement?.fontFamily || fontFamily, selectedElement?.fontSize || fontSize, selectedElement?.textAlign || textAlign, selectedElement?.fillStyle || fillStyle, selectedElement?.strokeStyle || strokeStyle, selectedElement?.roughness ?? roughness, selectedElement?.opacity ?? opacity);
         const elementsCopy = [...elements];
         elementsCopy[index] = element;
         setElements(elementsCopy, true);
@@ -484,7 +574,7 @@ export const Canvas: React.FC = () => {
             const newY1 = selEl.y1 + deltaY;
             const text = selEl.text;
             const linkProp = selEl.link;
-            const element = createElement(selEl.id, newX1, newY1, newX1 + width, newY1 + height, selEl.type as ToolType, selEl.strokeColor, selEl.backgroundColor, selEl.strokeWidth, selEl.roundness, selEl.imageUrl, selEl.fontFamily, selEl.fontSize, selEl.textAlign);
+            const element = createElement(theme, selEl.id, newX1, newY1, newX1 + width, newY1 + height, selEl.type as ToolType, selEl.strokeColor, selEl.backgroundColor, selEl.strokeWidth, selEl.roundness, selEl.imageUrl, selEl.fontFamily, selEl.fontSize, selEl.textAlign, selEl.fillStyle, selEl.strokeStyle, selEl.roughness, selEl.opacity);
             if (text) element.text = text;
             if (linkProp) element.link = linkProp;
             elementsCopy[index] = element;
@@ -517,7 +607,7 @@ export const Canvas: React.FC = () => {
         const newY1 = clientY - (selectedElement.yOffset || 0);
         const text = selectedElement.text;
         const linkProp = selectedElement.link;
-        const element = createElement(id, newX1, newY1, newX1 + width, newY1 + height, type as ToolType, strokeColor, backgroundColor, strokeWidth, roundness, imageUrl, selectedElement?.fontFamily, selectedElement?.fontSize, selectedElement?.textAlign);
+        const element = createElement(theme, id, newX1, newY1, newX1 + width, newY1 + height, type as ToolType, strokeColor, backgroundColor, strokeWidth, roundness, imageUrl, selectedElement?.fontFamily, selectedElement?.fontSize, selectedElement?.textAlign, selectedElement?.fillStyle, selectedElement?.strokeStyle, selectedElement?.roughness, selectedElement?.opacity);
         if (text) element.text = text;
         if (linkProp) element.link = linkProp;
         const elementsCopy = [...elements];
@@ -590,7 +680,7 @@ export const Canvas: React.FC = () => {
       
       const elementsCopy = [...elements];
       const index = elementsCopy.findIndex(el => el.id === id);
-      const element = createElement(id, x1, y1, x2, y2, type as ToolType, strokeColor, backgroundColor, strokeWidth, roundness, imageUrl, selectedElement?.fontFamily, fontSize, selectedElement?.textAlign);
+      const element = createElement(theme, id, x1, y1, x2, y2, type as ToolType, strokeColor, backgroundColor, strokeWidth, roundness, imageUrl, selectedElement?.fontFamily, fontSize, selectedElement?.textAlign, selectedElement?.fillStyle || fillStyle, selectedElement?.strokeStyle || strokeStyle, selectedElement?.roughness ?? roughness, selectedElement?.opacity ?? opacity);
       if (selectedElement.text) element.text = selectedElement.text;
       if (selectedElement.link) element.link = selectedElement.link;
       elementsCopy[index] = element;
@@ -793,7 +883,7 @@ export const Canvas: React.FC = () => {
       reader.onload = (event) => {
         const imageUrl = event.target?.result as string;
         const id = Date.now().toString();
-        const element = createElement(id, 100, 100, 300, 300, 'image', strokeColor, backgroundColor, strokeWidth, roundness, imageUrl);
+        const element = createElement(theme, id, 100, 100, 300, 300, 'image', strokeColor, backgroundColor, strokeWidth, roundness, imageUrl, undefined, undefined, undefined, fillStyle, strokeStyle, roughness, opacity);
         setElements((prevState: CanvasElement[]) => [...prevState, element]);
         setSelectedElement(element);
         setTool('selection');
@@ -816,11 +906,66 @@ export const Canvas: React.FC = () => {
   }, [action]);
 
   const getCanvasBackground = () => {
-    let bg = theme === 'dark' ? '#111827' : '#fdfdfd'; // default
+    let bg = theme === 'dark' ? '#121212' : '#fdfdfd'; // default
     if (canvasBgColor !== 'default') {
       bg = canvasBgColor;
     }
     return bg;
+  };
+
+  const handleDuplicate = () => {
+    if (selectedElement) {
+      if (selectedElements.length > 1) {
+        const offset = 20 / zoomScale;
+        const newElements = selectedElements.map(el => {
+          const newEl = { ...el, id: Date.now().toString() + Math.random(), x1: el.x1 + offset, y1: el.y1 + offset, x2: el.x2 + offset, y2: el.y2 + offset };
+          return createElement(theme, newEl.id, newEl.x1, newEl.y1, newEl.x2, newEl.y2, newEl.type, newEl.strokeColor, newEl.backgroundColor, newEl.strokeWidth, newEl.roundness, newEl.imageUrl, newEl.fontFamily, newEl.fontSize, newEl.textAlign, newEl.fillStyle, newEl.strokeStyle, newEl.roughness, newEl.opacity);
+        });
+        setElements(prev => [...prev, ...newElements]);
+        setSelectedElements(newElements);
+      } else {
+        const offset = 20 / zoomScale;
+        const newEl = { ...selectedElement, id: Date.now().toString(), x1: selectedElement.x1 + offset, y1: selectedElement.y1 + offset, x2: selectedElement.x2 + offset, y2: selectedElement.y2 + offset };
+        const el = createElement(theme, newEl.id, newEl.x1, newEl.y1, newEl.x2, newEl.y2, newEl.type, newEl.strokeColor, newEl.backgroundColor, newEl.strokeWidth, newEl.roundness, newEl.imageUrl, newEl.fontFamily, newEl.fontSize, newEl.textAlign, newEl.fillStyle, newEl.strokeStyle, newEl.roughness, newEl.opacity);
+        if (selectedElement.text) el.text = selectedElement.text;
+        if (selectedElement.link) el.link = selectedElement.link;
+        if (selectedElement.points) {
+          el.points = selectedElement.points.map(p => ({ x: p.x + offset, y: p.y + offset }));
+        }
+        setElements(prev => [...prev, el]);
+        setSelectedElement(el);
+      }
+    }
+  };
+
+  const handleDelete = () => {
+    if (selectedElements.length > 0) {
+      setElements(elements.filter(el => !selectedElements.some(s => s.id === el.id)));
+      setSelectedElements([]);
+      setSelectedElement(null);
+    } else if (selectedElement) {
+      setElements(elements.filter(el => el.id !== selectedElement.id));
+      setSelectedElement(null);
+    }
+  };
+
+  const handleLayerAction = (actionType: 'front' | 'back' | 'forward' | 'backward') => {
+    if (selectedElement && selectedElements.length <= 1) {
+      setElements(prevElements => {
+        const index = prevElements.findIndex(el => el.id === selectedElement.id);
+        if (index === -1) return prevElements;
+        const newElements = [...prevElements];
+        const [el] = newElements.splice(index, 1);
+        
+        switch (actionType) {
+          case 'front': newElements.push(el); break;
+          case 'back': newElements.unshift(el); break;
+          case 'forward': newElements.splice(Math.min(newElements.length, index + 1), 0, el); break;
+          case 'backward': newElements.splice(Math.max(0, index - 1), 0, el); break;
+        }
+        return newElements;
+      });
+    }
   };
 
   const getCanvasPattern = () => {
@@ -883,8 +1028,19 @@ export const Canvas: React.FC = () => {
         setStrokeColor={handleStrokeColorChange}
         backgroundColor={backgroundColor}
         setBackgroundColor={handleBackgroundColorChange}
+        fillStyle={fillStyle}
+        setFillStyle={handleFillStyleChange as any}
+        strokeStyle={strokeStyle}
+        setStrokeStyle={handleStrokeStyleChange as any}
         strokeWidth={strokeWidth}
         setStrokeWidth={handleStrokeWidthChange}
+        roughness={roughness}
+        setRoughness={handleRoughnessChange as any}
+        opacity={opacity}
+        setOpacity={handleOpacityChange}
+        onDuplicate={handleDuplicate}
+        onDelete={handleDelete}
+        onLayerAction={handleLayerAction}
         roundness={roundness}
         setRoundness={handleRoundnessChange as any}
         fontFamily={fontFamily}
@@ -982,7 +1138,7 @@ const useHistoryWrapper = () => {
       // roughElement needs to be regenerated
       return parsed.map((el: any) => {
         if (el.type === 'pencil' || el.type === 'text') return el;
-        const regeneratedElement = createElement(el.id, el.x1, el.y1, el.x2, el.y2, el.type, el.strokeColor, el.backgroundColor, el.strokeWidth, el.roundness, el.imageUrl, el.fontFamily, el.fontSize, el.textAlign);
+        const regeneratedElement = createElement(theme, el.id, el.x1, el.y1, el.x2, el.y2, el.type, el.strokeColor, el.backgroundColor, el.strokeWidth, el.roundness, el.imageUrl, el.fontFamily, el.fontSize, el.textAlign, el.fillStyle, el.strokeStyle, el.roughness, el.opacity);
         if (el.text) regeneratedElement.text = el.text;
         return regeneratedElement;
       });
