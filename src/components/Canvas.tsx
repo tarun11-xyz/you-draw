@@ -105,28 +105,15 @@ export const Canvas: React.FC = () => {
     }
 
     setElements(prevElements => {
-      let changed = false;
+      // Recreate all elements when theme changes so their colors resolve correctly
       const newElements = prevElements.map(el => {
-        let newStroke = el.strokeColor;
-        let newBg = el.backgroundColor;
-        
-        if (theme === 'dark') {
-          if (el.strokeColor === '#1e1e1e') { newStroke = '#ffffff'; changed = true; }
-          if (el.backgroundColor === '#1e1e1e') { newBg = '#ffffff'; changed = true; }
-        } else {
-          if (el.strokeColor === '#ffffff') { newStroke = '#1e1e1e'; changed = true; }
-          if (el.backgroundColor === '#ffffff') { newBg = '#1e1e1e'; changed = true; }
-        }
-
-        if (newStroke !== el.strokeColor || newBg !== el.backgroundColor) {
-          const newEl = createElement(theme, el.id, el.x1, el.y1, el.x2, el.y2, el.type, newStroke, newBg, el.strokeWidth, el.roundness, el.imageUrl, el.fontFamily, el.fontSize, el.textAlign, el.fillStyle, el.strokeStyle, el.roughness, el.opacity);
-          if (el.text) newEl.text = el.text;
-          if (el.points) newEl.points = el.points;
-          return newEl;
-        }
-        return el;
+        const newEl = createElement(theme, el.id, el.x1, el.y1, el.x2, el.y2, el.type, el.strokeColor, el.backgroundColor, el.strokeWidth, el.roundness, el.imageUrl, el.fontFamily, el.fontSize, el.textAlign, el.fillStyle, el.strokeStyle, el.roughness, el.opacity);
+        if (el.text) newEl.text = el.text;
+        if (el.points) newEl.points = el.points;
+        if (el.link) newEl.link = el.link;
+        return newEl;
       });
-      return changed ? newElements : prevElements;
+      return newElements;
     }, true);
   }, [theme]);
 
@@ -185,7 +172,7 @@ export const Canvas: React.FC = () => {
 
     elements.forEach(element => {
       if (action === 'writing' && selectedElement && selectedElement.id === element.id) return;
-      drawElement(roughCanvas, ctx, element);
+      drawElement(roughCanvas, ctx, element, theme);
     });
     
     if (selectedElement && tool === 'selection' && action !== 'writing') {
@@ -867,7 +854,7 @@ export const Canvas: React.FC = () => {
     const rc = rough.canvas(exportCanv);
     
     elements.forEach(el => {
-      drawElement(rc, ctx, el);
+      drawElement(rc, ctx, el, theme);
     });
     
     const elLink = document.createElement('a');
@@ -1106,8 +1093,26 @@ export const Canvas: React.FC = () => {
             resize: 'auto',
             overflow: 'hidden',
             whiteSpace: 'pre',
-            background: selectedElement.backgroundColor && selectedElement.backgroundColor !== 'transparent' ? selectedElement.backgroundColor : 'transparent',
-            color: (theme === 'dark' && selectedElement.strokeColor === '#1e1e1e') ? '#ffffff' : selectedElement.strokeColor,
+            background: (() => {
+              let bColor = selectedElement.backgroundColor;
+              if (theme === 'dark') {
+                if (bColor === '#1e1e1e') bColor = '#ffffff';
+                else if (bColor === '#ffffff') bColor = '#1e1e1e';
+              } else {
+                if (bColor === '#ffffff') bColor = '#1e1e1e';
+              }
+              return (bColor && bColor !== 'transparent') ? bColor : 'transparent';
+            })(),
+            color: (() => {
+              let sColor = selectedElement.strokeColor;
+              if (theme === 'dark') {
+                if (sColor === '#1e1e1e') sColor = '#ffffff';
+                else if (sColor === '#ffffff') sColor = '#1e1e1e';
+              } else {
+                if (sColor === '#ffffff') sColor = '#1e1e1e';
+              }
+              return sColor;
+            })(),
             zIndex: 9999,
           }}
           className="min-w-[150px] min-h-[40px] shadow-lg"
