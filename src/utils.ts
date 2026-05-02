@@ -277,10 +277,24 @@ export const cursorForPosition = (position: string) => {
 export const drawElement = (
   roughCanvas: any,
   context: CanvasRenderingContext2D,
-  element: CanvasElement
+  element: CanvasElement,
+  theme: string = 'light'
 ) => {
   context.save();
   context.globalAlpha = (element.opacity !== undefined ? element.opacity : 100) / 100;
+
+  // Resolve colors based on theme
+  let sColor = element.strokeColor || '#1e1e1e';
+  let bColor = element.backgroundColor || 'transparent';
+  if (theme === 'dark') {
+    if (sColor === '#1e1e1e') sColor = '#ffffff';
+    else if (sColor === '#ffffff') sColor = '#1e1e1e';
+    if (bColor === '#1e1e1e') bColor = '#ffffff';
+    else if (bColor === '#ffffff') bColor = '#1e1e1e';
+  } else {
+    if (sColor === '#ffffff') sColor = '#1e1e1e';
+    if (bColor === '#ffffff') bColor = '#1e1e1e';
+  }
 
   switch (element.type) {
     case 'line':
@@ -308,7 +322,7 @@ export const drawElement = (
         });
         const pathData = getSvgPathFromStroke(stroke);
         const path = new Path2D(pathData);
-        context.fillStyle = element.strokeColor;
+        context.fillStyle = sColor;
         context.fill(path);
       }
       break;
@@ -320,15 +334,15 @@ export const drawElement = (
       
       const padding = 8;
       
-      if (element.backgroundColor && element.backgroundColor !== 'transparent') {
-        context.fillStyle = element.backgroundColor;
+      if (bColor && bColor !== 'transparent') {
+        context.fillStyle = bColor;
         // Draw background rect with padding
         context.fillRect(minTextX - padding, minTextY - padding, textWidth + padding * 2, textHeight + padding * 2);
       }
 
       context.textBaseline = 'top';
       context.font = `${element.fontSize || 32}px ${element.fontFamily || 'sans-serif'}`;
-      context.fillStyle = element.strokeColor;
+      context.fillStyle = sColor;
       context.textAlign = element.textAlign || 'left';
       
       let drawX = minTextX;
@@ -357,7 +371,7 @@ export const drawElement = (
            context.moveTo(lineStartX, underlineY);
            context.lineTo(lineStartX + metrics.width, underlineY);
            context.lineWidth = Math.max(1, (element.fontSize || 32) * 0.08);
-           context.strokeStyle = element.strokeColor;
+           context.strokeStyle = sColor;
            context.setLineDash([Math.max(2, (element.fontSize || 32) * 0.15)]);
            context.stroke();
            context.setLineDash([]);
