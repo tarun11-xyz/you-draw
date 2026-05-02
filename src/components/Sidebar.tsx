@@ -49,9 +49,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {isOpen && (
           <div className="absolute top-12 left-0 w-64 bg-white dark:bg-[#232329] rounded-xl shadow-lg border border-gray-100 dark:border-[#383845] overflow-hidden py-3 transition-colors touch-auto max-h-[calc(100vh-80px)] overflow-y-auto custom-scrollbar">
             <div className="px-4 pb-4 mb-2 border-b border-gray-100 dark:border-[#383845] flex items-center gap-2">
-              <div className="w-7 h-7 bg-blue-500 dark:bg-[#00ffff] dark:text-[#232329] rounded-lg flex items-center justify-center text-white shadow-sm ring-2 ring-blue-500 dark:ring-[#00ffff] ring-offset-2 dark:ring-offset-gray-800 overflow-hidden">
+              <div className="w-7 h-7 flex items-center justify-center overflow-hidden">
                 {/* Replace the 'src' below with your custom image URL */}
-                <img src="https://tarun11.in/assets/YouDraw.webp" alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <img src="https://tarun11.in/assets/YouDraw.webp" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
               </div>
               <span className="font-bold text-lg text-gray-800 dark:text-gray-200 tracking-widest font-joyful">YouDraw</span>
             </div>
